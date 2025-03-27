@@ -1,3 +1,6 @@
+import random
+from itertools import count
+
 from aiogram.types import Message
 from loader import *
 from datetime import datetime, timedelta
@@ -15,10 +18,19 @@ async def record_violation(user_id):
 
 
 async def check_user_mute(user_id):
+    global mute_time
     if user_id in user_violations:
         violations = user_violations[user_id]
         if violations['count'] >= MAX_VIOLATIONS:
-            mute_end = violations['last_violation'] + timedelta(minutes=MUTE_DURATION)
+            if violations['count'] <= 5:
+                mute_time = timedelta(minutes=MUTE_DURATION) * violations['count']
+            elif violations['count'] >= 6:
+                if violations['count'] <= 10:
+                    mute_time = timedelta(minutes=MUTE_DURATION) * violations['count'] * violations['count']
+                else:
+                    mute_time = timedelta(minutes=MUTE_DURATION) * violations['count']* violations['count']* violations['count']
+            mute_end = violations['last_violation'] + mute_time
+            violations['count'] += 1
             if datetime.now() < mute_end:
                 return True
             else:
@@ -33,8 +45,8 @@ async def handle_message(message: Message):
     if await check_user_mute(user_id):
         await message.delete()
         await message.answer(
-            f"@{message.from_user.username}, атлетай"
-            f"в мут на {MUTE_DURATION} нефиг была нарушать")
+            f"@{message.from_user.username}, {random.choice(frazi1)} "
+            f" {mute_time} ")
         return
     if message.entities:
         for entity in message.entities:
@@ -42,8 +54,8 @@ async def handle_message(message: Message):
                 await message.delete()
                 await record_violation(user_id)
                 await message.answer(
-                    f"@{message.from_user.username}, убрал твои высир"
-                    f"не кидай ссылки рапок {user_violations[user_id]['count']}")
+                    f"@{message.from_user.username}, {random.choice(frazi2)}  " 
+                    f" {user_violations[user_id]['count']}")
                 return
     text = message.text.lower()
     for word in FORBIDDEN_WORDS:
@@ -51,7 +63,7 @@ async def handle_message(message: Message):
             await message.delete()
             await record_violation(user_id)
             await message.answer(
-                f"@{message.from_user.username}, убрал высир"
-                f" не материс балбес статья {user_violations[user_id]['count']}")
+                f"@{message.from_user.username}, {random.choice(frazi3)} "
+                f" {user_violations[user_id]['count']}")
             return
 
